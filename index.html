@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        k8s: {
+                            blue: '#326CE5',
+                            light: '#8FB0F4',
+                            dark: '#1d2f50'
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'spin-slow': 'spin 20s linear infinite',
+                        'pulse-glow': 'pulse-glow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: 1, boxShadow: '0 0 20px rgba(50, 108, 229, 0.2)' },
+                            '50%': { opacity: .7, boxShadow: '0 0 40px rgba(50, 108, 229, 0.5)' },
+                        }
+                    },
+                    screens: {
+                        '3xl': '1920px',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050507;
+            color: #ffffff;
+            overflow-x: hidden;
+            width: 100%;
+        }
+
+        /* Tech Grid Background */
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050507;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Gradient Text */
+        .text-gradient {
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .text-gradient-blue {
+            background: linear-gradient(135deg, #326CE5 0%, #60a5fa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Reveal Animation Classes */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-strong {
+            background: rgba(30, 30, 35, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Architecture Nodes */
+        .node-box {
+            position: relative;
+            background: rgba(20, 20, 30, 0.8);
+            border: 1px solid rgba(50, 108, 229, 0.3);
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        
+        /* Connector Lines */
+        .connector-h {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #326CE5, transparent);
+        }
+
+        /* Code Terminal Style */
+        .terminal-window {
+            background: #1e1e1e;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-k8s-blue selection:text-white relative">
+    
+    <!-- Background Grid Pattern -->
+    <div class="fixed inset-0 z-[-1] bg-grid-pattern pointer-events-none"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 transition-all duration-300 backdrop-blur-md border-b border-white/5 bg-black/50 py-4">
+        <div class="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer shrink-0">
+                <i class="fa-solid fa-dharmachakra text-k8s-blue text-2xl lg:text-3xl animate-spin-slow"></i>
+                <span class="font-bold text-xl lg:text-2xl tracking-tight">Kubernetes</span>
+            </div>
+            <div class="hidden md:flex gap-8 lg:gap-12 text-sm lg:text-base 2xl:text-lg font-medium text-gray-400">
+                <a href="#concept" class="hover:text-white transition-colors">Концепция</a>
+                <a href="#architecture" class="hover:text-white transition-colors">Архитектура</a>
+                <a href="#primitives" class="hover:text-white transition-colors">Понятия</a>
+                <a href="#features" class="hover:text-white transition-colors">Возможности</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex flex-col justify-center items-center text-center px-4 pt-20 overflow-hidden">
+        <!-- Background Glow -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[600px] md:h-[600px] lg:w-[800px] lg:h-[800px] bg-k8s-blue/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
+
+        <div class="reveal max-w-full z-10">
+            <h2 class="text-k8s-blue font-semibold tracking-widest text-xs md:text-sm lg:text-base uppercase mb-6">Container Orchestration Platform</h2>
+            <h1 class="text-4xl md:text-8xl 2xl:text-9xl font-bold mb-6 tracking-tight leading-tight break-words">
+                Управление разнообразием <br>
+                <span class="text-gradient-blue">микросервисов.</span>
+            </h1>
+            <p class="text-lg md:text-2xl 2xl:text-3xl text-gray-400 max-w-3xl 2xl:max-w-5xl mx-auto mb-10 font-light leading-relaxed px-2">
+                Kubernetes (K8s) — это открытое программное обеспечение для автоматизации развёртывания, масштабирования и управления контейнеризированными приложениями.
+            </p>
+            <p class="text-sm lg:text-base text-gray-500 uppercase tracking-widest animate-pulse">Листайте вниз, чтобы изучить</p>
+            <div class="mt-4 text-gray-600 lg:text-2xl">
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+        </div>
+
+        <!-- Animated Abstract visual -->
+        <div class="mt-20 relative w-full max-w-4xl 2xl:max-w-6xl h-64 md:h-96 reveal delay-200 flex justify-center items-center">
+            <!-- Central Node -->
+            <div class="absolute z-10 w-24 h-24 lg:w-40 lg:h-40 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-2xl flex items-center justify-center animate-float">
+                <i class="fa-solid fa-server text-4xl lg:text-6xl text-white"></i>
+            </div>
+            
+            <!-- Orbiting Pods -->
+            <div class="absolute w-full h-full animate-spin-slow opacity-30">
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 lg:w-20 lg:h-20 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 flex items-center justify-center">
+                    <i class="fa-solid fa-cube text-white/70 lg:text-3xl"></i>
+                </div>
+                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 lg:w-20 lg:h-20 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 flex items-center justify-center">
+                    <i class="fa-solid fa-cube text-white/70 lg:text-3xl"></i>
+                </div>
+                 <div class="absolute top-1/2 left-0 -translate-y-1/2 w-12 h-12 lg:w-20 lg:h-20 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 flex items-center justify-center">
+                    <i class="fa-solid fa-cube text-white/70 lg:text-3xl"></i>
+                </div>
+                 <div class="absolute top-1/2 right-0 -translate-y-1/2 w-12 h-12 lg:w-20 lg:h-20 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 flex items-center justify-center">
+                    <i class="fa-solid fa-cube text-white/70 lg:text-3xl"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 1: The Problem & Concept -->
+    <section id="concept" class="py-24 px-4 sm:px-6 bg-[#0A0A0C]/50 border-y border-white/5 backdrop-blur-sm">
+        <!-- Increased max-width for large screens -->
+        <div class="max-w-5xl 2xl:max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-16 2xl:gap-24 items-center">
+                <div class="reveal">
+                    <div class="inline-block px-3 py-1 mb-4 text-xs lg:text-sm font-semibold tracking-wider text-k8s-blue uppercase border border-k8s-blue/30 rounded-full">
+                        Контекст
+                    </div>
+                    <h2 class="text-3xl md:text-5xl 2xl:text-6xl font-bold mb-6">Зачем это нужно?</h2>
+                    <p class="text-gray-400 text-lg lg:text-xl 2xl:text-2xl leading-relaxed mb-6">
+                        Раньше приложения запускались на физических серверах. Если одно приложение занимало все ресурсы, другие падали.
+                    </p>
+                    <p class="text-gray-400 text-lg lg:text-xl 2xl:text-2xl leading-relaxed mb-6">
+                        Появились <strong>контейнеры</strong> (Docker), изолирующие приложения. Но что делать, если у вас тысячи контейнеров? Как следить, чтобы они не падали? Как их обновлять без простоя?
+                    </p>
+                    <div class="p-6 2xl:p-8 bg-white/5 rounded-xl border-l-4 border-k8s-blue mt-8">
+                        <p class="text-white italic text-lg 2xl:text-xl">"Kubernetes — это дирижер для вашего оркестра контейнеров."</p>
+                    </div>
+                </div>
+                <div class="reveal delay-200 grid grid-cols-2 gap-6 lg:gap-8">
+                    <div class="glass p-6 lg:p-10 rounded-2xl flex flex-col items-center text-center">
+                        <i class="fa-solid fa-box-open text-3xl lg:text-5xl text-yellow-500 mb-4 lg:mb-6"></i>
+                        <h4 class="font-bold text-base lg:text-xl">Контейнеры</h4>
+                        <p class="text-xs lg:text-base text-gray-500 mt-2">Упаковка кода</p>
+                    </div>
+                    <div class="glass p-6 lg:p-10 rounded-2xl flex flex-col items-center text-center">
+                        <i class="fa-solid fa-network-wired text-3xl lg:text-5xl text-green-500 mb-4 lg:mb-6"></i>
+                        <h4 class="font-bold text-base lg:text-xl">Масштаб</h4>
+                        <p class="text-xs lg:text-base text-gray-500 mt-2">Тысячи штук</p>
+                    </div>
+                    <div class="col-span-2 glass-strong p-8 lg:p-12 rounded-2xl flex flex-col items-center text-center border-k8s-blue border">
+                        <i class="fa-solid fa-dharmachakra text-4xl lg:text-6xl text-k8s-blue mb-4 lg:mb-6 animate-spin-slow"></i>
+                        <h4 class="font-bold text-xl lg:text-3xl">Kubernetes</h4>
+                        <p class="text-sm lg:text-lg text-gray-400 mt-2">Управляет всем этим автоматически</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: Architecture Diagram -->
+    <section id="architecture" class="py-20 md:py-32 px-4 sm:px-6 relative overflow-hidden">
+        <!-- Side ambient glows for wide screens -->
+        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-64 h-64 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none hidden 2xl:block"></div>
+        <div class="absolute right-0 top-1/2 -translate-y-1/2 w-64 h-64 bg-k8s-blue/10 rounded-full blur-[100px] pointer-events-none hidden 2xl:block"></div>
+
+        <div class="max-w-7xl 2xl:max-w-[1500px] mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-4xl md:text-6xl font-bold mb-6">Архитектура Кластера</h2>
+                <p class="text-xl lg:text-2xl text-gray-400 max-w-2xl lg:max-w-4xl mx-auto">
+                    Кластер Kubernetes состоит из двух основных частей: управляющего слоя (Control Plane) и рабочих узлов (Worker Nodes).
+                </p>
+            </div>
+
+            <!-- Interactive Architecture Visual -->
+            <div class="relative grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start reveal delay-100" style="align-items: center;">
+                
+                <!-- Left: Control Plane (The Brain) -->
+                <div class="lg:col-span-4 node-box rounded-2xl p-6 sm:p-8 lg:p-10 border-l-4 border-l-purple-500 mt-4 lg:mt-0 lg:sticky lg:top-24">
+                    <div class="absolute -top-3 left-4 sm:left-8 bg-purple-500 text-xs lg:text-sm font-bold px-3 py-1 rounded text-white uppercase tracking-wider">Control Plane (Brain)</div>
+                    <div class="space-y-4 lg:space-y-6 mt-4">
+                        <div class="glass p-4 lg:p-6 rounded-xl flex items-center gap-4 lg:gap-6">
+                            <div class="w-10 h-10 lg:w-14 lg:h-14 shrink-0 bg-purple-500/20 rounded flex items-center justify-center text-purple-400 text-lg lg:text-2xl"><i class="fa-solid fa-brain"></i></div>
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-sm lg:text-lg truncate">API Server</h4>
+                                <p class="text-xs lg:text-sm text-gray-500 truncate">Центральная точка (REST)</p>
+                            </div>
+                        </div>
+                        <div class="glass p-4 lg:p-6 rounded-xl flex items-center gap-4 lg:gap-6">
+                            <div class="w-10 h-10 lg:w-14 lg:h-14 shrink-0 bg-purple-500/20 rounded flex items-center justify-center text-purple-400 text-lg lg:text-2xl"><i class="fa-solid fa-database"></i></div>
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-sm lg:text-lg">etcd</h4>
+                                <p class="text-xs lg:text-sm text-gray-500">Хранилище состояния</p>
+                            </div>
+                        </div>
+                        <div class="glass p-4 lg:p-6 rounded-xl flex items-center gap-4 lg:gap-6">
+                            <div class="w-10 h-10 lg:w-14 lg:h-14 shrink-0 bg-purple-500/20 rounded flex items-center justify-center text-purple-400 text-lg lg:text-2xl"><i class="fa-solid fa-calendar-check"></i></div>
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-sm lg:text-lg">Scheduler</h4>
+                                <p class="text-xs lg:text-sm text-gray-500">Распределяет поды</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center: Connection (Hidden on mobile) -->
+                <div class="lg:col-span-1 h-full hidden lg:flex items-center justify-center">
+                    <div class="w-full h-[2px] bg-gradient-to-r from-purple-500 to-k8s-blue"></div>
+                    <i class="fa-solid fa-arrows-left-right text-gray-500 absolute bg-[#050507] px-2 text-xl"></i>
+                </div>
+
+                <!-- Right: Worker Nodes (The Muscle) -->
+                <div class="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+                    <!-- Node 1 -->
+                    <div class="node-box rounded-2xl p-5 sm:p-6 lg:p-8 border-t-4 border-t-k8s-blue">
+                        <div class="flex justify-between items-center mb-6 flex-wrap gap-2">
+                            <h3 class="font-bold text-lg lg:text-xl whitespace-nowrap"><i class="fa-solid fa-server text-gray-500 mr-2"></i> Node 1</h3>
+                            <span class="text-xs lg:text-sm bg-green-500/20 text-green-400 px-2 lg:px-3 py-1 rounded shrink-0">Ready</span>
+                        </div>
+                        <div class="space-y-3 lg:space-y-4">
+                            <div class="glass p-3 lg:p-4 rounded bg-k8s-blue/10 border border-k8s-blue/30 flex justify-between items-center">
+                                <span class="text-sm lg:text-base font-mono text-k8s-light">Pod (App A)</span>
+                                <div class="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-green-400 animate-pulse shrink-0"></div>
+                            </div>
+                            <div class="glass p-3 lg:p-4 rounded bg-k8s-blue/10 border border-k8s-blue/30 flex justify-between items-center">
+                                <span class="text-sm lg:text-base font-mono text-k8s-light">Pod (App B)</span>
+                                <div class="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-green-400 animate-pulse shrink-0"></div>
+                            </div>
+                        </div>
+                        <div class="mt-6 lg:mt-8 pt-4 lg:pt-6 border-t border-white/10 flex justify-between text-xs lg:text-sm text-gray-500">
+                            <span>Kubelet</span>
+                            <span>Kube-proxy</span>
+                        </div>
+                    </div>
+
+                    <!-- Node 2 -->
+                    <div class="node-box rounded-2xl p-5 sm:p-6 lg:p-8 border-t-4 border-t-k8s-blue opacity-80">
+                         <div class="flex justify-between items-center mb-6 flex-wrap gap-2">
+                            <h3 class="font-bold text-lg lg:text-xl whitespace-nowrap"><i class="fa-solid fa-server text-gray-500 mr-2"></i> Node 2</h3>
+                            <span class="text-xs lg:text-sm bg-green-500/20 text-green-400 px-2 lg:px-3 py-1 rounded shrink-0">Ready</span>
+                        </div>
+                        <div class="space-y-3 lg:space-y-4">
+                            <div class="glass p-3 lg:p-4 rounded bg-k8s-blue/10 border border-k8s-blue/30 flex justify-between items-center">
+                                <span class="text-sm lg:text-base font-mono text-k8s-light">Pod (App A)</span>
+                                <div class="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-green-400 animate-pulse shrink-0"></div>
+                            </div>
+                        </div>
+                        <div class="mt-6 lg:mt-8 pt-4 lg:pt-6 border-t border-white/10 flex justify-between text-xs lg:text-sm text-gray-500">
+                            <span>Kubelet</span>
+                            <span>Kube-proxy</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: Primitives (Vocabulary) -->
+    <section id="primitives" class="py-24 bg-[#0E0E11]/80 border-t border-white/5 backdrop-blur-md">
+        <div class="max-w-7xl 2xl:max-w-[1500px] mx-auto px-6">
+            <h2 class="text-3xl lg:text-4xl font-bold mb-10 reveal">Базовые понятия</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                <!-- Card 1 -->
+                <div class="glass p-6 lg:p-8 rounded-xl hover:bg-white/5 transition-colors reveal delay-100 border-b-2 border-transparent hover:border-blue-500">
+                    <div class="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-blue-500/20 flex items-center justify-center mb-4 lg:mb-6 text-blue-400 text-xl lg:text-3xl font-bold">P</div>
+                    <h3 class="text-xl lg:text-2xl font-bold mb-2">Pod</h3>
+                    <p class="text-gray-400 text-sm lg:text-lg">Самый маленький объект. Содержит один или несколько контейнеров. Могут удаляться и пересоздаваться.</p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="glass p-6 lg:p-8 rounded-xl hover:bg-white/5 transition-colors reveal delay-200 border-b-2 border-transparent hover:border-purple-500">
+                    <div class="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-purple-500/20 flex items-center justify-center mb-4 lg:mb-6 text-purple-400 text-xl lg:text-3xl font-bold">D</div>
+                    <h3 class="text-xl lg:text-2xl font-bold mb-2">Deployment</h3>
+                    <p class="text-gray-400 text-sm lg:text-lg">Менеджер Подов. Гарантирует, что нужное количество копий вашего приложения всегда запущено.</p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="glass p-6 lg:p-8 rounded-xl hover:bg-white/5 transition-colors reveal delay-300 border-b-2 border-transparent hover:border-green-500">
+                    <div class="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4 lg:mb-6 text-green-400 text-xl lg:text-3xl font-bold">S</div>
+                    <h3 class="text-xl lg:text-2xl font-bold mb-2">Service</h3>
+                    <p class="text-gray-400 text-sm lg:text-lg">Постоянный IP-адрес для группы Подов. Позволяет другим сервисам находить ваше приложение.</p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="glass p-6 lg:p-8 rounded-xl hover:bg-white/5 transition-colors reveal delay-400 border-b-2 border-transparent hover:border-pink-500">
+                    <div class="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-pink-500/20 flex items-center justify-center mb-4 lg:mb-6 text-pink-400 text-xl lg:text-3xl font-bold">V</div>
+                    <h3 class="text-xl lg:text-2xl font-bold mb-2">Volume</h3>
+                    <p class="text-gray-400 text-sm lg:text-lg">Хранилище данных. Позволяет сохранять файлы, даже если контейнер перезапустится.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 4: Features (Updated text) -->
+    <section id="features" class="py-32 px-6 max-w-7xl 2xl:max-w-[1500px] mx-auto">
+        <div class="mb-20">
+            <h2 class="text-4xl md:text-6xl font-bold mb-6 reveal">Суперсилы K8s.</h2>
+            <p class="text-xl lg:text-2xl text-gray-400 max-w-2xl reveal delay-100">
+                Почему инженеры Google, Spotify и OpenAI не могут без него жить?
+            </p>
+        </div>
+
+        <!-- Bento Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            
+            <!-- Large Card -->
+            <div class="md:col-span-2 glass rounded-3xl p-6 sm:p-10 lg:p-12 relative overflow-hidden group reveal delay-100">
+                <h3 class="text-2xl lg:text-4xl font-semibold mb-2 lg:mb-4 text-white">Horizontal Scaling</h3>
+                <p class="text-gray-400 max-w-md lg:max-w-2xl text-base lg:text-xl">В пиковые часы Kubernetes автоматически добавляет новые поды, а когда нагрузка падает — убирает их.</p>
+                
+                <!-- Mock Chart -->
+                <div class="h-32 lg:h-48 flex items-end gap-2 border-b border-white/10 pb-1" style="justify-content: right;">
+                    <div class="w-8 lg:w-12 bg-blue-500/30 h-[20%] rounded-t-md transition-all duration-1000 group-hover:h-[40%]"></div>
+                    <div class="w-8 lg:w-12 bg-blue-500/40 h-[30%] rounded-t-md transition-all duration-1000 group-hover:h-[60%]"></div>
+                    <div class="w-8 lg:w-12 bg-blue-500/50 h-[50%] rounded-t-md transition-all duration-1000 group-hover:h-[80%]"></div>
+                    <div class="w-8 lg:w-12 bg-k8s-blue h-[70%] rounded-t-md transition-all duration-1000 group-hover:h-[100%] shadow-[0_0_15px_#326CE5]"></div>
+                    <div class="w-8 lg:w-12 bg-blue-500/50 h-[40%] rounded-t-md transition-all duration-1000 group-hover:h-[60%]"></div>
+                </div>
+            </div>
+
+            <!-- Tall Card -->
+            <div class="glass rounded-3xl p-6 sm:p-10 lg:p-12 flex flex-col justify-between reveal delay-200 group overflow-hidden">
+                 <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-green-500/10 rounded-full blur-3xl group-hover:bg-green-500/20 transition-all"></div>
+                <div>
+                    <i class="fa-solid fa-bandage text-4xl lg:text-6xl text-green-400 mb-6 lg:mb-8"></i>
+                    <h3 class="text-2xl lg:text-3xl font-semibold mb-2 lg:mb-4">Self-healing</h3>
+                    <p class="text-gray-400 text-base lg:text-xl">Kubernetes перезапускает отказавшие контейнеры и убивает те, что не отвечают на проверки.</p>
+                </div>
+            </div>
+
+            <!-- Medium Card -->
+            <div class="glass rounded-3xl p-6 sm:p-10 lg:p-12 reveal delay-300 group">
+                <i class="fa-solid fa-code-branch text-4xl lg:text-6xl text-indigo-400 mb-6 lg:mb-8 group-hover:scale-110 transition-transform"></i>
+                <h3 class="text-2xl lg:text-3xl font-semibold mb-2 lg:mb-4">Rolling Updates</h3>
+                <p class="text-gray-400 text-base lg:text-xl">Обновление без простоя. K8s заменяет старые версии на новые постепенно.</p>
+            </div>
+
+            <!-- Wide Card -->
+            <div class="md:col-span-2 glass rounded-3xl p-6 sm:p-10 lg:p-12 flex flex-col md:flex-row items-center gap-10 reveal delay-400">
+                <div class="flex-1">
+                    <h3 class="text-2xl lg:text-3xl font-semibold mb-2 lg:mb-4">Cloud Agnostic</h3>
+                    <p class="text-gray-400 text-base lg:text-xl">Работает везде: AWS, Google Cloud, Azure или ваш собственный дата-центр.</p>
+                </div>
+                <div class="flex gap-4 lg:gap-8 text-4xl lg:text-6xl text-gray-500">
+                    <i class="fa-brands fa-aws hover:text-white transition-colors"></i>
+                    <i class="fa-brands fa-google hover:text-white transition-colors"></i>
+                    <i class="fa-brands fa-microsoft hover:text-white transition-colors"></i>
+                    <i class="fa-solid fa-server hover:text-white transition-colors"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Developer Experience (Terminal) -->
+    <section class="py-24 bg-[#0A0A0C] border-y border-white/5">
+        <div class="max-w-7xl 2xl:max-w-[1500px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+            
+            <div class="reveal">
+                <div class="text-k8s-blue font-mono mb-2 text-sm lg:text-lg">&lt;Interface /&gt;</div>
+                <h2 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">Как мы с ним общаемся?</h2>
+                <p class="text-lg lg:text-xl text-gray-400 mb-6">
+                    Взаимодействие происходит через утилиту командной строки <code>kubectl</code> или через YAML-файлы манифестов. Вы описываете желаемое состояние, а система приводит кластер к этому состоянию.
+                </p>
+                <ul class="space-y-4 lg:space-y-6 text-gray-300 text-base lg:text-xl">
+                    <li class="flex items-center gap-3">
+                        <i class="fa-solid fa-file-code text-yellow-500"></i>
+                        <span><strong>YAML:</strong> Язык описания конфигураций</span>
+                    </li>
+                    <li class="flex items-center gap-3">
+                        <i class="fa-solid fa-terminal text-green-500"></i>
+                        <span><strong>CLI:</strong> Мощный интерфейс для управления</span>
+                    </li>
+                    <li class="flex items-center gap-3">
+                        <i class="fa-solid fa-layer-group text-blue-500"></i>
+                        <span><strong>Declarative API:</strong> Мы говорим "что", а не "как"</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Terminal Mockup (Fixed for Mobile & Large) -->
+            <div class="reveal delay-200 relative">
+                <!-- Large Screen Glow -->
+                <div class="absolute -inset-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 blur-2xl rounded-xl -z-10 hidden 2xl:block"></div>
+                
+                <div class="terminal-window p-4 lg:p-6 max-w-full">
+                    <div class="flex gap-2 lg:gap-3 mb-4 lg:mb-6">
+                        <div class="w-3 h-3 lg:w-4 lg:h-4 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 lg:w-4 lg:h-4 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 lg:w-4 lg:h-4 rounded-full bg-green-500"></div>
+                    </div>
+                    <!-- Added overflow-x-auto for horizontal scrolling on mobile -->
+                    <div class="text-sm md:text-base lg:text-lg 2xl:text-xl text-gray-300 font-mono space-y-2 lg:space-y-4 overflow-x-auto pb-2">
+                        <div class="min-w-max"> <!-- Container to ensure content keeps width -->
+                            <p class="text-gray-500"># Проверим статус узлов</p>
+                            <p><span class="text-green-400">student@k8s:~$</span> kubectl get nodes</p>
+                            <div class="opacity-70">
+                                <p>NAME&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;STATUS&nbsp;&nbsp;&nbsp;ROLES&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AGE&nbsp;&nbsp;&nbsp;VERSION</p>
+                                <p>k8s-master&nbsp;&nbsp;<span class="text-green-400">Ready</span>&nbsp;&nbsp;&nbsp;&nbsp;control-plane&nbsp;&nbsp;&nbsp;4d&nbsp;&nbsp;&nbsp;&nbsp;v1.30.0</p>
+                                <p>k8s-worker1&nbsp;<span class="text-green-400">Ready</span>&nbsp;&nbsp;&nbsp;&nbsp;&lt;none&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4d&nbsp;&nbsp;&nbsp;&nbsp;v1.30.0</p>
+                            </div>
+                            <p class="mt-4 lg:mt-6 text-gray-500"># Запустим веб-сервер Nginx (3 копии)</p>
+                            <p><span class="text-green-400">student@k8s:~$</span> kubectl create deployment nginx --image=nginx --replicas=3</p>
+                            <p class="text-gray-500">deployment.apps/nginx created</p>
+                            <p class="mt-4 lg:mt-6"><span class="text-green-400">student@k8s:~$</span> <span class="animate-pulse">_</span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-2 text-xs text-gray-600 md:hidden">
+                    <i class="fa-solid fa-arrow-right-long mr-1"></i> Свайпните терминал влево
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Why Learn Section -->
+    <section class="py-32 text-center px-6 relative">
+        <h2 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-10 lg:mb-16">Почему это важно изучать?</h2>
+        <div class="max-w-4xl 2xl:max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+            <div class="reveal">
+                <div class="text-5xl lg:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-700 mb-2 lg:mb-4">#1</div>
+                <p class="text-gray-400 text-lg lg:text-xl">Самый востребованный навык в DevOps и Backend разработке в 2024 году.</p>
+            </div>
+             <div class="reveal delay-100">
+                <div class="text-5xl lg:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-700 mb-2 lg:mb-4">OS</div>
+                <p class="text-gray-400 text-lg lg:text-xl">Kubernetes часто называют "Операционной системой для облака".</p>
+            </div>
+             <div class="reveal delay-200">
+                <div class="text-5xl lg:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-700 mb-2 lg:mb-4">Open</div>
+                <p class="text-gray-400 text-lg lg:text-xl">Полностью Open Source проект, поддерживаемый Linux Foundation.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/10 py-12 bg-black">
+        <div class="max-w-7xl 2xl:max-w-[1500px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-dharmachakra text-gray-500 lg:text-xl"></i>
+                <span class="text-gray-500 font-semibold lg:text-lg">Kubernetes</span>
+            </div>
+            <div class="text-gray-600 text-sm lg:text-base text-center md:text-left">
+                Автор: Керимов Д.Н.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Reveal on Scroll Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const reveals = document.querySelectorAll('.reveal');
+
+            const revealOnScroll = () => {
+                const windowHeight = window.innerHeight;
+                const elementVisible = 50;
+
+                reveals.forEach((reveal) => {
+                    const elementTop = reveal.getBoundingClientRect().top;
+                    if (elementTop < windowHeight - elementVisible) {
+                        reveal.classList.add('active');
+                    }
+                });
+            };
+
+            window.addEventListener('scroll', revealOnScroll);
+            revealOnScroll();
+        });
+    </script>
+</body>
+</html>
